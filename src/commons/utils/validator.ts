@@ -1,4 +1,4 @@
-import { plainToInstance } from 'class-transformer';
+import {plainToInstance} from 'class-transformer';
 import {
   ClassConstructor,
   ClassTransformOptions,
@@ -27,21 +27,19 @@ export class Validator {
       data: [[], number],
       req: Request,
   ) {
-    const { page, per_page } = req.query;
+    const {page, per_page} = req.query;
     const [items, counter] = data || [[], 0];
     const perPage =
         +(per_page || QueryHttpReqEnum.DEFAULT_PER_PAGE) ||
         QueryHttpReqEnum.DEFAULT_PER_PAGE;
     const currentPage =
-        +(page || QueryHttpReqEnum.DEFAULT_PAGE) || QueryHttpReqEnum.DEFAULT_PAGE;
+        +(page || QueryHttpReqEnum.DEFAULT_PAGE) ||
+        QueryHttpReqEnum.DEFAULT_PAGE;
     const totalPages = Math.ceil((counter ?? 0) / perPage);
 
     const newQueryParams = Array.from(
         new Set(Object.keys(req.query).filter((key) => key !== 'page')),
-    )
-    .map((key) => `&${key}=${req.query[key]}`)
-    .join('')
-    .substring(1);
+    ).map((key) => `&${key}=${req.query[key]}`).join('').substring(1);
 
     return Validator.transform(cls, {
       data: items || [],
@@ -77,14 +75,30 @@ export class Validator {
   static validate<S, T>(
       cls: ClassConstructor<T>,
       obj: S,
-      options: ValidatorOptions = { whitelist: true, forbidNonWhitelisted: true, forbidUnknownValues: true },
+      options: TransformValidatorOptions = {
+        validator: {
+          whitelist: true,
+          forbidNonWhitelisted: true,
+          forbidUnknownValues: true,
+        },
+        transform: {
+          enableCircularCheck: true,
+          excludeExtraneousValues: true,
+          enableImplicitConversion: true,
+        },
+      },
   ) {
-    const transformedObj = Validator.transform(cls, obj);
+    const transformedObj = Validator.transform(cls, obj, options?.transform);
     // @ts-ignore
-    return validateOrReject(transformedObj, options)
-    .then(() => transformedObj)
-    .catch((errors: Error) => {
-      throw new BadRequestException('Error Validating', { cause: errors });
-    });
+    return validateOrReject(transformedObj, options?.validator).
+        then(() => transformedObj).
+        catch((errors: Error) => {
+          throw new BadRequestException('Error Validating', {cause: errors});
+        });
   }
+}
+
+interface TransformValidatorOptions {
+  validator: ValidatorOptions;
+  transform: ClassTransformOptions;
 }

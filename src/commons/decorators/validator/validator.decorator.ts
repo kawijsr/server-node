@@ -1,35 +1,36 @@
 import 'reflect-metadata';
 import {Validator} from '../../utils/validator';
+
 const commandParamMetadataKey = Symbol('command:param');
 
 export function Type(ClassConstructor) {
-  return function (
-    target: object,
-    propertyKey: string | symbol,
-    parameterIndex: number,
+  return function(
+      target: object,
+      propertyKey: string | symbol,
+      parameterIndex: number,
   ) {
     const existingCommandParameters: [number, any] =
-      Reflect.getOwnMetadata(commandParamMetadataKey, target, propertyKey) ||
-      [];
+        Reflect.getOwnMetadata(commandParamMetadataKey, target, propertyKey) ||
+        [];
     existingCommandParameters.push([parameterIndex, ClassConstructor]);
     Reflect.defineMetadata(
-      commandParamMetadataKey,
-      existingCommandParameters,
-      target,
-      propertyKey,
+        commandParamMetadataKey,
+        existingCommandParameters,
+        target,
+        propertyKey,
     );
   };
 }
 
 export function Command() {
-  return function (
+  return function(
       target: any,
       propertyName: string,
       descriptor: PropertyDescriptor,
   ) {
     const method = descriptor.value!;
 
-    descriptor.value = async function () {
+    descriptor.value = async function() {
       const commandParameters: [number, any] = Reflect.getOwnMetadata(
           commandParamMetadataKey,
           target,
@@ -41,11 +42,22 @@ export function Command() {
             arguments[index] = await Validator.validate(
                 ClassConstructor,
                 arguments[index],
+                {
+                  validator: {
+                    whitelist: true,
+                    forbidNonWhitelisted: true,
+                    forbidUnknownValues: true,
+                  },
+                  transform: {
+                    enableCircularCheck: true,
+                    enableImplicitConversion: true,
+                  },
+                },
             );
           }) || [],
       );
       return method.apply(this, arguments);
     };
-  }
+  };
 }
 

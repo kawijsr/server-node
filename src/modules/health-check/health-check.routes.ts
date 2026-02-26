@@ -39,11 +39,6 @@ export class HealthCheckRoutes {
       @Req() request: Request,
       @Res() response: Response,
   ) {
-    return {
-      id,
-      name,
-      t,
-      body,
-    };
+    return healthCheckService.pingDynamicPost({id, name, t, body});
   }
 }
