@@ -3,7 +3,6 @@ import {MetadataStorage} from 'class-validator/types/metadata/MetadataStorage';
 import {
   ValidationMetadata,
 } from 'class-validator/types/metadata/ValidationMetadata';
-import {metadata} from 'reflect-metadata/no-conflict';
 
 type Type<T> = new (...args: any[]) => T;
 
@@ -38,9 +37,8 @@ export function PickType<T, K extends keyof T>(
     metadataStorage.addValidationMetadata(newMetadata);
   });
 
-  targetMetadata.filter(
-      (metadata) => toPartialKeys.includes(metadata.propertyName as K)).map((m) => {
-    IsOptional()(m.target, m.propertyName)
+  toPartialKeys.forEach((propertyKey) => {
+    IsOptional()(PickObjectType.prototype, propertyKey as string);
   });
 
   return PickObjectType as Type<Pick<T, K>>;
