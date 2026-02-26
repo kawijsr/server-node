@@ -1,0 +1,16 @@
+### Status
+GET {{host}}/
+
+### Ping
+GET {{host}}/ping
+
+### Dynamic Ping
+GET {{host}}/dynamic/123/ping/one?t=qaz
+
+### Dynamic Ping
+POST {{host}}/dynamic/123/ping/one?t=qwerty
+Content-Type: application/json
+
+{
+  "a": 1
+}
