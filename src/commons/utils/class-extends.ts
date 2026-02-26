@@ -28,7 +28,7 @@ export function PickType<T, K extends keyof T>(
   .forEach((metadata) => {
     const newMetadata: ValidationMetadata = {
       ...metadata,
-      target: PickObjectType, // Asignamos la nueva clase como objetivo
+      target: PickObjectType,
     };
     metadataStorage.addValidationMetadata(newMetadata);
   });
