@@ -17,7 +17,7 @@ export class PingDynamicCommand {
   t: string;
 }
 
-export class PingDynamicCommandPost extends PickType(PingDynamicCommand, ['id', 'name', 't']) {
+export class PingDynamicCommandPost extends PickType(PingDynamicCommand, ['id', 'name'], ['t']) {
   @Expose()
   @IsObject()
   @IsNotEmpty()

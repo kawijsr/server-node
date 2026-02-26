@@ -8,7 +8,7 @@ GET {{host}}/ping
 GET {{host}}/dynamic/123/ping/one?t=qaz
 
 ### Dynamic Ping
-POST {{host}}/dynamic/123/ping/one?t=qwerty
+POST {{host}}/dynamic/123/ping/one
 Content-Type: application/json
 
 {

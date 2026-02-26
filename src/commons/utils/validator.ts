@@ -3,7 +3,11 @@ import {
   ClassConstructor,
   ClassTransformOptions,
 } from 'class-transformer/types/interfaces';
-import {validateOrReject, ValidatorOptions} from 'class-validator';
+import {
+  validateOrReject,
+  ValidationError,
+  ValidatorOptions,
+} from 'class-validator';
 import {Request} from 'express';
 import {QueryHttpReqEnum} from '../dto/query.http.req.dto';
 import {BadRequestException} from '../exceptions/exceptions';
@@ -92,7 +96,11 @@ export class Validator {
     // @ts-ignore
     return validateOrReject(transformedObj, options?.validator).
         then(() => transformedObj).
-        catch((errors: Error) => {
+        catch((errors) => {
+          if (errors && Array.isArray(errors)) {
+            throw new BadRequestException('Error Constraint Validating',
+                {cause: errors.map(e => e.constraints), details: errors.map(e => e.constraints)});
+          }
           throw new BadRequestException('Error Validating', {cause: errors});
         });
   }
