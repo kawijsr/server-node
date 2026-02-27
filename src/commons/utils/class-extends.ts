@@ -6,18 +6,14 @@ import {
 
 type Type<T> = new (...args: any[]) => T;
 
-export function PickType<T, K extends keyof T>(
+export function PickType<T, K extends keyof T, P extends keyof T = never,>(
     classRef: Type<T>,
     keys: readonly K[],
-    partialKeys?: readonly K[],
-): { new(): Pick<T, K> } {
+    partialKeys?: readonly P[],
+): Type<Omit<Pick<T, K | P>, P> & Partial<Pick<T, P>>> {
   const toPartialKeys = partialKeys || [];
 
-  abstract class PickObjectType extends (classRef as any) {
-    constructor() {
-      super();
-    }
-  }
+  abstract class PickObjectType extends (classRef as any) {}
 
   const metadataStorage: MetadataStorage = getMetadataStorage();
 
@@ -41,5 +37,5 @@ export function PickType<T, K extends keyof T>(
     IsOptional()(PickObjectType.prototype, propertyKey as string);
   });
 
-  return PickObjectType as Type<Pick<T, K>>;
+  return PickObjectType as Type<Omit<Pick<T, K | P>, P> & Partial<Pick<T, P>>>;
 }
