@@ -36,7 +36,6 @@ export function Route(method: string, path: string, options?: RouteOptions) {
     route.method = method;
     route.path = path;
     route.handler = (req, res) => {
-      req.routeHandler = func;
       let params: { index: number, name: string }[] =
         Reflect.getOwnMetadata(paramMetadataKey, target, propertyKey) || [];
       let query: { index: number, name: string }[] =
