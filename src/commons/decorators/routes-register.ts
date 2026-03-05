@@ -7,7 +7,7 @@ const requestMetadataKey = Symbol('Request');
 const responseMetadataKey = Symbol('Response');
 
 
-export function Routes(path: string) {
+export function Routes(path: string = '') {
   return function (target: any) {
     const constructor = target.prototype.constructor;
     constructor.path = path;
@@ -19,7 +19,7 @@ export function Routes(path: string) {
           const el = target.prototype[key];
           if (el instanceof IRoute) {
             const { method, path: routePath, handler } = el;
-            const mapped = `/${(path || '').replace('/', '')}${(routePath || '').replace('/', '')}`;
+            const mapped = `${(path?.startsWith('/') ? path : '/' + path) || '/'}${(routePath?.startsWith('/') ? routePath : '/' + routePath) || '/'}`.replace(/\/+/g, '/');
             console.log(`Route -> ${method.toUpperCase()} ${mapped}`);
             app[method.toLowerCase()](mapped, handler);
           }

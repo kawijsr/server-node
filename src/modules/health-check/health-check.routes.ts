@@ -10,7 +10,7 @@ import {
 import { Request, Response } from 'express';
 import {healthCheckService} from './health-check.service';
 
-@Routes('/')
+@Routes()
 export class HealthCheckRoutes {
 
   @Route('get', '/')
