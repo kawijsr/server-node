@@ -9,11 +9,13 @@ import {
 } from '../../commons/decorators/routes-register';
 import { Request, Response } from 'express';
 import {healthCheckService} from './health-check.service';
+import {logMiddleware} from '../commons/log.middleware';
+import {routeMiddleware} from '../commons/route.middleware';
 
-@Routes()
+@Routes('', {middleware: [logMiddleware]})
 export class HealthCheckRoutes {
 
-  @Route('get', '/')
+  @Route('get', '/', {middleware: [logMiddleware, routeMiddleware]})
   public healthCheck() {
     return healthCheckService.healthCheck();
   }
