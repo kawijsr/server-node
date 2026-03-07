@@ -35,12 +35,12 @@ export class Application {
     Object.values(this.options.routes).forEach((route: any) => (new route()['instance'](this.app)));
   }
 
-  start(callback?: () => void) {
+  start(callback?: (app?: express.Express) => void) {
     // Routing
     this.router();
     this.app.listen(this.port, () => {
       console.log(`Listening on port -> ${this.port}`);
-      callback && callback();
+      callback && callback(this.app);
     });
     return this;
   }
