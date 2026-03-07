@@ -11,6 +11,7 @@ import { Request, Response } from 'express';
 import {healthCheckService} from './health-check.service';
 import {logMiddleware} from '../commons/log.middleware';
 import {routeMiddleware} from '../commons/route.middleware';
+import {PingDynamicPostInDto} from './health-check.in.dto';
 
 @Routes('', {middleware: [logMiddleware]})
 export class HealthCheckRoutes {

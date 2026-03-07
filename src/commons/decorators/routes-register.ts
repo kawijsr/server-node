@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import {Validator} from '../utils/validator';
 
 const paramMetadataKey = Symbol('Param');
 const queryMetadataKey = Symbol('Query');
@@ -36,17 +37,23 @@ export function Route(method: string, path: string, options?: RouteOptions) {
     route.method = method;
     route.path = path;
     route.middleware = options?.middleware;
-    route.handler = (req, res) => {
+    route.handler = async (req, res) => {
       let params: { index: number, name: string }[] =
         Reflect.getOwnMetadata(paramMetadataKey, target, propertyKey) || [];
-      let query: { index: number, name: string }[] =
+      let query: { index: number, name: string, type: any }[] =
         Reflect.getOwnMetadata(queryMetadataKey, target, propertyKey) || [];
-      let body: { index: number, name: string }[] =
+      let body: { index: number, name: string, type: any }[] =
         Reflect.getOwnMetadata(bodyMetadataKey, target, propertyKey) || [];
-      let request: { index: number, name: string }[] =
+      let request: { index: number, name: string, type: any }[] =
           Reflect.getOwnMetadata(requestMetadataKey, target, propertyKey) || [];
-      let response: { index: number, name: string }[] =
+      let response: { index: number, name: string, type: any }[] =
           Reflect.getOwnMetadata(responseMetadataKey, target, propertyKey) || [];
+
+      await Promise.all(body.map(async (param) => {
+        if (param.type !== Object) {
+          req.body = await Validator.validate(param.type, req.body);
+        }
+      }));
 
       const args = [...params, ...query, ...body, ...request, ...response].sort((a, b) => a.index - b.index)
         .map(param => req.params[param.name] || req.query[param.name] || (param.name === '@@body@@' ? req.body : undefined) || (param.name === '@@request@@' ? req : undefined) || (param.name === '@@response@@' ? res : undefined));
@@ -98,12 +105,16 @@ export function Query(paramName: string) {
 
 export function Body() {
   return function (target: Object, propertyKey: string, parameterIndex: number) {
-    let body: { index: number, name: string }[] =
+    let body: { index: number, name: string, type: any }[] =
       Reflect.getOwnMetadata(bodyMetadataKey, target, propertyKey) || [];
+
+    const paramTypes = Reflect.getMetadata('design:paramtypes', target, propertyKey);
+    const paramType = paramTypes[parameterIndex];
 
     body.push({
       index: parameterIndex,
-      name: '@@body@@'
+      name: '@@body@@',
+      type: paramType,
     });
 
     Reflect.defineMetadata(bodyMetadataKey, body, target, propertyKey);

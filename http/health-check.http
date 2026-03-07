@@ -12,5 +12,5 @@ POST {{host}}/dynamic/123/ping/one?t=qwerty
 Content-Type: application/json
 
 {
-  "a": 1
+  "foo": 1
 }
