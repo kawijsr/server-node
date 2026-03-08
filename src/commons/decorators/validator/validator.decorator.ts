@@ -3,7 +3,7 @@ import {Validator} from '../../utils/validator';
 
 const commandParamMetadataKey = Symbol('command:param');
 
-export function Type(ClassConstructor) {
+export function Type(ClassConstructor?) {
   return function(
       target: object,
       propertyKey: string | symbol,
@@ -12,7 +12,16 @@ export function Type(ClassConstructor) {
     const existingCommandParameters: [number, any] =
         Reflect.getOwnMetadata(commandParamMetadataKey, target, propertyKey) ||
         [];
-    existingCommandParameters.push([parameterIndex, ClassConstructor]);
+
+    const paramType = (() => {
+      if (ClassConstructor) {
+        return ClassConstructor;
+      }
+      const paramTypes = Reflect.getMetadata('design:paramtypes', target, propertyKey);
+      return paramTypes[parameterIndex];
+    })()
+
+    existingCommandParameters.push([parameterIndex, paramType]);
     Reflect.defineMetadata(
         commandParamMetadataKey,
         existingCommandParameters,

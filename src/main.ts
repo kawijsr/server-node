@@ -3,4 +3,11 @@ import { Application } from './commons/application';
 
 Application.build({ routes: require('./routes') }).use(express.json()).pipe((app) => {
   // Any thing for app Express instance
-}).start();
+}).start((app) => {
+  app.use((err, req, res, next) => {
+    if (err) {
+      return res.status(500).json({ message: err.message, stack: err.stack });
+    }
+    next();
+  });
+});

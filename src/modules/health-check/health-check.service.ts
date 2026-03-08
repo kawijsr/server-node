@@ -35,7 +35,7 @@ class HealthCheckService {
   }
 
   @Command()
-  pingDynamicPost(@Type(PingDynamicCommandPost) cmd: PingDynamicCommandPost) {
+  pingDynamicPost(@Type() cmd: PingDynamicCommandPost) {
     return cmd;
   }
 }
