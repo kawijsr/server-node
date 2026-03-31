@@ -3,7 +3,7 @@ import {Validator} from '../../utils/validator';
 
 const commandParamMetadataKey = Symbol('command:param');
 
-export function Type(ClassConstructor?) {
+export function Arg(ClassConstructor?) {
   return function(
       target: object,
       propertyKey: string | symbol,

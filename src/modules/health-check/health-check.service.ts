@@ -1,6 +1,6 @@
 import {
   Command,
-  Type,
+  Arg,
 } from '../../commons/decorators/validator/validator.decorator';
 import {
   PingDynamicCommand,
@@ -30,12 +30,12 @@ class HealthCheckService {
   }
 
   @Command()
-  pingDynamic(@Type(PingDynamicCommand) cmd: PingDynamicCommand) {
+  pingDynamic(@Arg(PingDynamicCommand) cmd: PingDynamicCommand) {
     return cmd;
   }
 
   @Command()
-  pingDynamicPost(@Type() cmd: PingDynamicCommandPost) {
+  pingDynamicPost(@Arg() cmd: PingDynamicCommandPost) {
     return cmd;
   }
 }
