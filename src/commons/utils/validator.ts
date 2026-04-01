@@ -99,7 +99,7 @@ export class Validator {
         catch((errors) => {
           if (errors && Array.isArray(errors)) {
             throw new BadRequestException('Error Constraint Validating',
-                {cause: errors.map(e => e.constraints), details: errors.map(e => e.constraints)});
+                {cause: errors.map(e => e.constraints || e), details: errors.map(e => e.constraints || e)});
           }
           throw new BadRequestException('Error Validating', {cause: errors.constraints || errors, details: errors.constraints || errors});
         });

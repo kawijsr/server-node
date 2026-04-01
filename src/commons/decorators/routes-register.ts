@@ -65,7 +65,6 @@ export function Route(method: string, path: string, options?: RouteOptions) {
       const result = func.apply(target, args);
       if (result instanceof Promise) {
         return result.then(data => res.send(data)).catch(err => {
-          console.error(err);
           throw err;
         });
       }
