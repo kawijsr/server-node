@@ -101,7 +101,7 @@ export class Validator {
             throw new BadRequestException('Error Constraint Validating',
                 {cause: errors.map(e => e.constraints), details: errors.map(e => e.constraints)});
           }
-          throw new BadRequestException('Error Validating', {cause: errors});
+          throw new BadRequestException('Error Validating', {cause: errors.constraints || errors, details: errors.constraints || errors});
         });
   }
 }
