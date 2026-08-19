@@ -1,4 +1,4 @@
-import * as express from 'express';
+import express from 'express';
 import { Configurations } from './configurations';
 import {Express} from "express";
 
