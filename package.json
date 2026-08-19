@@ -12,8 +12,8 @@
   ],
   "scripts": {
     "start:dev": "nodemon",
-    "start:prod": "npm run build && node ./dist/src/main.js",
-    "build": "npm run clean && tsc",
+    "start:prod": "npm run build && node ./dist/main.js",
+    "build": "rm ./tsconfig.tsbuildinfo && npm run clean && tsc",
     "clean": "rimraf dist"
   },
   "author": "",
