@@ -7,22 +7,38 @@ const bodyMetadataKey = Symbol('Body');
 const requestMetadataKey = Symbol('Request');
 const responseMetadataKey = Symbol('Response');
 
-
 export function Routes(path: string = '', options?: RoutesOptions) {
-  return function (target: any) {
+  return function(target: any) {
     const constructor = target.prototype.constructor;
     constructor.path = path;
 
-    target.prototype.instance = (app) => {
+    target.prototype.instance = (app: any) => {
       const keys = Object.getOwnPropertyNames(target.prototype);
+
       keys.forEach(key => {
         if (key !== 'instance' && key !== 'constructor') {
-          const el = target.prototype[key];
-          if (el instanceof IRoute) {
-            const { method, path: routePath, handler, middleware } = el;
-            const mapped = `${(path?.startsWith('/') ? path : '/' + path) || '/'}${(routePath?.startsWith('/') ? routePath : '/' + routePath) || '/'}`.replace(/\/+/g, '/');
+          const routeInfo = Reflect.getOwnMetadata(`route:${key}`,
+              target.prototype);
+
+          if (routeInfo) {
+            const {method, path: routePath, handler, middleware} = routeInfo;
+
+            const mapped = `${(path?.startsWith('/') ? path : '/' + path) ||
+            '/'}${(routePath?.startsWith('/') ? routePath : '/' + routePath) ||
+            '/'}`.replace(/\/+/g, '/');
             console.log(`Route -> ${method.toUpperCase()} ${mapped}`);
-            app[method.toLowerCase()](mapped, (middleware || options?.middleware || []), handler);
+
+            const routeHandler = (req: any, res: any, next: any) => {
+              if (!target.prototype._classInstance) {
+                target.prototype._classInstance = new target();
+              }
+              handler.call(target.prototype._classInstance, req, res, next);
+            };
+
+            const totalMiddleware = [
+              ...(options?.middleware || []),
+              ...middleware];
+            app[method](mapped, totalMiddleware, routeHandler);
           }
         }
       });
@@ -31,57 +47,71 @@ export function Routes(path: string = '', options?: RoutesOptions) {
 }
 
 export function Route(method: string, path: string, options?: RouteOptions) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    const func = descriptor.value;
-    const route = new IRoute();
-    route.method = method;
-    route.path = path;
-    route.middleware = options?.middleware;
-    route.handler = async (req, res) => {
-      let params: { index: number, name: string }[] =
-        Reflect.getOwnMetadata(paramMetadataKey, target, propertyKey) || [];
-      let query: { index: number, name: string, type: any }[] =
-        Reflect.getOwnMetadata(queryMetadataKey, target, propertyKey) || [];
-      let body: { index: number, name: string, type: any }[] =
-        Reflect.getOwnMetadata(bodyMetadataKey, target, propertyKey) || [];
-      let request: { index: number, name: string, type: any }[] =
-          Reflect.getOwnMetadata(requestMetadataKey, target, propertyKey) || [];
-      let response: { index: number, name: string, type: any }[] =
-          Reflect.getOwnMetadata(responseMetadataKey, target, propertyKey) || [];
+  return function(
+      target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    const originalMethod = descriptor.value;
 
-      await Promise.all(body.map(async (param) => {
-        if (param.type !== Object) {
-          req.body = await Validator.validate(param.type, req.body);
+    descriptor.value = async function(req: any, res: any, next: any) {
+      let params = Reflect.getOwnMetadata(paramMetadataKey, target,
+          propertyKey) || [];
+      let query = Reflect.getOwnMetadata(queryMetadataKey, target,
+          propertyKey) || [];
+      let body = Reflect.getOwnMetadata(bodyMetadataKey, target, propertyKey) ||
+          [];
+      let request = Reflect.getOwnMetadata(requestMetadataKey, target,
+          propertyKey) || [];
+      let response = Reflect.getOwnMetadata(responseMetadataKey, target,
+          propertyKey) || [];
+
+      try {
+        await Promise.all(body.map(async (param) => {
+          if (param.type !== Object) {
+            req.body = await Validator.validate(param.type, req.body);
+          }
+        }));
+
+        const args = [
+          ...params,
+          ...query,
+          ...body,
+          ...request,
+          ...response].sort((a, b) => a.index - b.index).
+            map(param => req.params[param.name] || req.query[param.name] ||
+                (param.name === '@@body@@' ? req.body : undefined) ||
+                (param.name === '@@request@@' ? req : undefined) ||
+                (param.name === '@@response@@' ? res : undefined));
+
+        const result = await originalMethod.apply(this, args);
+
+        if (options?.render) {
+          return result;
         }
-      }));
 
-      const args = [...params, ...query, ...body, ...request, ...response].sort((a, b) => a.index - b.index)
-        .map(param => req.params[param.name] || req.query[param.name] || (param.name === '@@body@@' ? req.body : undefined) || (param.name === '@@request@@' ? req : undefined) || (param.name === '@@response@@' ? res : undefined));
-
-      if (options?.render) {
-        return func.apply(target, args);
+        return res.send(result);
+      } catch (err) {
+        next(err); // Buen manejo de errores en Express
       }
-
-      const result = func.apply(target, args);
-      if (result instanceof Promise) {
-        return result.then(data => res.send(data)).catch(err => {
-          throw err;
-        });
-      }
-      return res.send(result);
     };
-    descriptor.value = route;
+
+    const routeInfo = {
+      method: method.toLowerCase(),
+      path,
+      middleware: options?.middleware || [],
+      handler: descriptor.value, // El handler ahora es la función envuelta
+    };
+
+    Reflect.defineMetadata(`route:${propertyKey}`, routeInfo, target);
   };
 }
 
 export function Param(paramName: string) {
-  return function (target: Object, propertyKey: string, parameterIndex: number) {
+  return function(target: Object, propertyKey: string, parameterIndex: number) {
     let params: { index: number, name: string }[] =
-      Reflect.getOwnMetadata(paramMetadataKey, target, propertyKey) || [];
+        Reflect.getOwnMetadata(paramMetadataKey, target, propertyKey) || [];
 
     params.push({
       index: parameterIndex,
-      name: paramName
+      name: paramName,
     });
 
     Reflect.defineMetadata(paramMetadataKey, params, target, propertyKey);
@@ -89,13 +119,13 @@ export function Param(paramName: string) {
 }
 
 export function Query(paramName: string) {
-  return function (target: Object, propertyKey: string, parameterIndex: number) {
+  return function(target: Object, propertyKey: string, parameterIndex: number) {
     let query: { index: number, name: string }[] =
-      Reflect.getOwnMetadata(queryMetadataKey, target, propertyKey) || [];
+        Reflect.getOwnMetadata(queryMetadataKey, target, propertyKey) || [];
 
     query.push({
       index: parameterIndex,
-      name: paramName
+      name: paramName,
     });
 
     Reflect.defineMetadata(queryMetadataKey, query, target, propertyKey);
@@ -103,11 +133,12 @@ export function Query(paramName: string) {
 }
 
 export function Body() {
-  return function (target: Object, propertyKey: string, parameterIndex: number) {
+  return function(target: Object, propertyKey: string, parameterIndex: number) {
     let body: { index: number, name: string, type: any }[] =
-      Reflect.getOwnMetadata(bodyMetadataKey, target, propertyKey) || [];
+        Reflect.getOwnMetadata(bodyMetadataKey, target, propertyKey) || [];
 
-    const paramTypes = Reflect.getMetadata('design:paramtypes', target, propertyKey);
+    const paramTypes = Reflect.getMetadata('design:paramtypes', target,
+        propertyKey);
     const paramType = paramTypes[parameterIndex];
 
     body.push({
@@ -121,13 +152,13 @@ export function Body() {
 }
 
 export function Req() {
-  return function (target: Object, propertyKey: string, parameterIndex: number) {
+  return function(target: Object, propertyKey: string, parameterIndex: number) {
     let request: { index: number, name: string }[] =
         Reflect.getOwnMetadata(requestMetadataKey, target, propertyKey) || [];
 
     request.push({
       index: parameterIndex,
-      name: '@@request@@'
+      name: '@@request@@',
     });
 
     Reflect.defineMetadata(requestMetadataKey, request, target, propertyKey);
@@ -135,13 +166,13 @@ export function Req() {
 }
 
 export function Res() {
-  return function (target: Object, propertyKey: string, parameterIndex: number) {
+  return function(target: Object, propertyKey: string, parameterIndex: number) {
     let request: { index: number, name: string }[] =
         Reflect.getOwnMetadata(responseMetadataKey, target, propertyKey) || [];
 
     request.push({
       index: parameterIndex,
-      name: '@@response@@'
+      name: '@@response@@',
     });
 
     Reflect.defineMetadata(responseMetadataKey, request, target, propertyKey);
